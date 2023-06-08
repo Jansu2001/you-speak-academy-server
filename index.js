@@ -57,6 +57,7 @@ async function run() {
 
     const usersCollection=client.db('speakAcademyDB').collection('allUsers')
     const classesCollection=client.db('speakAcademyDB').collection('classes')
+    const selectClassesCollection=client.db('speakAcademyDB').collection('selectClasses')
 
 
 
@@ -74,14 +75,11 @@ async function run() {
   
 
 
-    // Get users
+    // USERS DASHBOARD
     app.get('/users', async (req,res)=>{
         const result= await usersCollection.find().toArray()
         res.send(result)
       })
-
-
-
 
     //   JSW TOKEN FOR SECURUTY
     // app.post('/jwt', (req,res)=>{
@@ -89,7 +87,6 @@ async function run() {
     //     const token=jwt.sign(user, process.env.ACCESS_TOKEN_SECRET,{ expiresIn: '1h' })
     //     res.send({token})
     //   })
-
 
     app.post('/users', async (req, res) => {
         const user=req.body
@@ -103,9 +100,26 @@ async function run() {
       })
 
 
-    //   Classess 
+
+    //   INSTRUCTOR DASHBOARD 
+
+    app.patch('/addclass/status/:id', async (req,res)=>{
+        const id=req.params.id;
+        const filter={_id: new ObjectId(id)} 
+        const updateDoc = {
+            $set: {
+                status: 'approved',
+            },
+          };
+          const result = await classesCollection.updateOne(filter,updateDoc)
+          res.send(result)
+      })
+
     // Get Classes From MongoDB
-    app.get('/addclass', async (req,res)=>{
+    app.get('/addclass',  async (req,res)=>{
+        // const status=req.query.status;
+
+        // const query = { status: status };
         const result= await classesCollection.find().toArray()
         res.send(result)
       })
@@ -120,11 +134,44 @@ async function run() {
 
 
 
+      // STUDENT DASHBOARD
+
+      // TODO: GET SELECTED CLASS FROM DATABASE
+
+      app.get('/selectedclass', async (req,res)=>{
+        const email=req.query.email;
+        // console.log(email);
+        if(!email){
+          res.send([])
+        }
+  
+        // After Verifiying JWT
+        // const decodedEmail=req.decoded.email
+        // if(email!==decodedEmail){
+        //   return res.status(403).send({error: true, message:'Forbidden access'})
+        // }
+        const query = { email: email };
+        const result=await selectClassesCollection.find(query).toArray();
+        res.send(result)
+  })
+
+      app.post('/selectedclass', async (req,res)=>{
+        const selectclass=req.body;
+        const result= await selectClassesCollection.insertOne(selectclass)
+        res.send(result)
+      })
+
+      app.delete('/selectedclass/:id',async (req,res)=>{
+        const id=req.params.id
+        const query={_id: new ObjectId(id)};
+        const result = await selectClassesCollection.deleteOne(query)
+        res.send(result)
+      })
 
 
 
-    //   Make Uses Admin
 
+    //   MAKE ALL DASHBOARD SECTION
 
     // app.get('/users/admin/:email', async (req,res)=>{
     //     const email=req.params.email
@@ -137,8 +184,6 @@ async function run() {
     //     res.send(result)
   
     //   })
-
-
 
       app.patch('/users/admin/:id', async (req,res)=>{
         const id=req.params.id;
@@ -163,6 +208,7 @@ async function run() {
           const result = await usersCollection.updateOne(filter,updateDoc)
           res.send(result)
       })
+
 
 
 
