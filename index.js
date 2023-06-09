@@ -65,17 +65,18 @@ async function run() {
 ----------------------- ADMIN DASHBOARD -----------------------------
 ---------------------------------------------------------------------*/
     
-//     const verifyAdmin=async (req,res,next)=>{
-//         const email=req.decoded.email;
-//         const query={email:email}
-//         const user= await usersCollection.findOne(query)
-//         if(user?.role!=='admin'){
-//           return res.status(403).send({error: true, message:'Forbidden access'})
-//       }
-//      next()
-//   }
+// Verify Admin 
+    const verifyAdmin = async (req,res,next)=>{
+        const email = req.decoded.email;
+        const query = {email:email}
+        const user = await usersCollection.findOne(query)
+        if(user?.role!=='admin'){
+          return res.status(403).send({error: true, message:'Forbidden access'})
+      }
+     next()
+  }
 
-    app.get('/users', async (req,res)=>{
+    app.get('/users',verifyJWTToken, verifyAdmin, async (req,res)=>{
         const result= await usersCollection.find().toArray()
         res.send(result)
       })
@@ -101,6 +102,17 @@ async function run() {
 /*-------------------------------------------------------------------
 -------------------- INSTRUCTOR DASHBOARD ---------------------------
 ---------------------------------------------------------------------*/
+
+    const verifyInstructor = async (req,res,next)=>{
+      const email = req.decoded.email;
+      const query = {email:email}
+      const user = await usersCollection.findOne(query)
+      if(user?.role!=='instructor'){
+        return res.status(403).send({error: true, message:'Forbidden access'})
+    }
+    next()
+    }
+
 
     app.patch('/addclass/status/:id', async (req,res)=>{
         const id=req.params.id;
@@ -142,7 +154,7 @@ async function run() {
         if(!email){
           res.send([])
         }
-  
+
         // Check decoded email and user email 
         const decodedEmail=req.decoded.email
         if(email!==decodedEmail){
@@ -199,17 +211,29 @@ async function run() {
 -------------------- MAKE USER INSTRUCTOR ---------------------------
 ---------------------------------------------------------------------*/
 
-    app.get('/users/instructor/:email', verifyJWTToken, async (req,res)=>{
-      const email=req.params.email;
+    // app.get('/users/instructor/:email', verifyJWTToken, async (req,res)=>{
+    //   const email=req.params.email;
       
+    //   if(req.decoded.email !== email){
+    //     res.send({instructor:false})
+    //   }
+    //   const query={email:email}
+    //   const user=usersCollection.findOne(query)
+    //   const result = {  instructor:user?.role === 'instructor'}
+    //   res.send(result)
+    // })
+
+    app.get('/users/instructor/:email', verifyJWTToken, async (req,res)=>{
+      const email=req.params.email
       if(req.decoded.email !== email){
         res.send({instructor:false})
       }
       const query={email:email}
-      const user=usersCollection.findOne(query)
-      const result={  instructor:user?.role === 'instructor'}
+      const user=await usersCollection.findOne(query)
+      const result = {instructor: user?.role ==='instructor'}
       res.send(result)
     })
+
 
       app.patch('/users/instructor/:id', async (req,res)=>{
         const id=req.params.id;
@@ -225,7 +249,7 @@ async function run() {
 
 
 
-      
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
