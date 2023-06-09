@@ -19,7 +19,7 @@ app.use(express.json())
 //     }
 //     // 
 //     const token=authorization.split(' ')[1]
-//     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET,(error,decoded)=>{
+//     jwt.verify(token, process.env.JWT_ACCESS_TOKEN,(error,decoded)=>{
 //       if(error){
 //         return res.status(403).send({error: true, message:'Forbidden access'})
 //       }
@@ -81,19 +81,20 @@ async function run() {
         res.send(result)
       })
 
-    //   JSW TOKEN FOR SECURUTY
-    // app.post('/jwt', (req,res)=>{
-    //     const user=req.body;
-    //     const token=jwt.sign(user, process.env.ACCESS_TOKEN_SECRET,{ expiresIn: '1h' })
-    //     res.send({token})
-    //   })
+
+    //   JWT TOKEN FOR SECURUTY
+    app.post('/jwt', (req,res)=>{
+        const user=req.body;
+        const token=jwt.sign(user, process.env.JWT_ACCESS_TOKEN,{ expiresIn: '1h' })
+        res.send({token})
+      })
 
     app.post('/users', async (req, res) => {
         const user=req.body
         const query={email:user.email}
         const existingUser=await usersCollection.findOne(query)
         if(existingUser){
-          return res.send({message: 'user exists already'})
+          return res.status(409).send({message: 'user exists already'})
         }
         const result = await usersCollection.insertOne(user)
         res.send(result)
@@ -136,7 +137,7 @@ async function run() {
 
       // STUDENT DASHBOARD
 
-      // TODO: GET SELECTED CLASS FROM DATABASE
+      // GET SELECTED CLASS FROM DATABASE
 
       app.get('/selectedclass', async (req,res)=>{
         const email=req.query.email;
