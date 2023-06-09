@@ -76,6 +76,12 @@ async function run() {
      next()
   }
 
+app.get('/instructor', async (req,res)=>{
+  const result= await usersCollection.find().toArray()
+  res.send(result)
+})
+
+
     app.get('/users',verifyJWTToken, verifyAdmin, async (req,res)=>{
         const result= await usersCollection.find().toArray()
         res.send(result)
@@ -99,6 +105,32 @@ async function run() {
         res.send(result)
       })
 
+      // Implemention Approved Status
+      app.patch('/addclass/status/approved/:id', async (req,res)=>{
+        const id=req.params.id;
+        const filter={_id: new ObjectId(id)} 
+        const updateDoc = {
+            $set: {
+                status: 'approved',
+            },
+          };
+          const result = await classesCollection.updateOne(filter,updateDoc)
+          res.send(result)
+      })
+
+      // Implemention Deny Status
+      app.patch('/addclass/status/deny/:id', async (req,res)=>{
+        const id=req.params.id;
+        const filter={_id: new ObjectId(id)} 
+        const updateDoc = {
+            $set: {
+                status: 'deny',
+            },
+          };
+          const result = await classesCollection.updateOne(filter,updateDoc)
+          res.send(result)
+      })
+
 /*-------------------------------------------------------------------
 -------------------- INSTRUCTOR DASHBOARD ---------------------------
 ---------------------------------------------------------------------*/
@@ -114,26 +146,22 @@ async function run() {
     }
 
 
-    app.patch('/addclass/status/:id', async (req,res)=>{
-        const id=req.params.id;
-        const filter={_id: new ObjectId(id)} 
-        const updateDoc = {
-            $set: {
-                status: 'approved',
-            },
-          };
-          const result = await classesCollection.updateOne(filter,updateDoc)
-          res.send(result)
-      })
-
     // Get Classes From MongoDB
     app.get('/addclass',  async (req,res)=>{
-        // const status=req.query.status;
-
-        // const query = { status: status };
         const result= await classesCollection.find().toArray()
         res.send(result)
       })
+
+
+
+    // TODO: MOdule 77.5
+    app.get('/AddedClasses', async (req,res)=>{
+      const email=req.query.email;
+      const query= {email:email};
+      const result= await classesCollection.find(query).toArray()
+      res.send(result)
+
+    })
 
     // POST Classes From Client Side
     app.post('/addclass',async (req,res)=>{
@@ -210,18 +238,6 @@ async function run() {
 /*-------------------------------------------------------------------
 -------------------- MAKE USER INSTRUCTOR ---------------------------
 ---------------------------------------------------------------------*/
-
-    // app.get('/users/instructor/:email', verifyJWTToken, async (req,res)=>{
-    //   const email=req.params.email;
-      
-    //   if(req.decoded.email !== email){
-    //     res.send({instructor:false})
-    //   }
-    //   const query={email:email}
-    //   const user=usersCollection.findOne(query)
-    //   const result = {  instructor:user?.role === 'instructor'}
-    //   res.send(result)
-    // })
 
     app.get('/users/instructor/:email', verifyJWTToken, async (req,res)=>{
       const email=req.params.email
