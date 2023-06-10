@@ -3,7 +3,7 @@ const app =express()
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY);
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 require('dotenv').config()
 const port =process.env.PORT || 5000;
 
@@ -30,8 +30,6 @@ const verifyJWTToken= (req,res,next)=>{
   }
 
 
-
-
 // Server Home Routes
 app.get('/', (req,res)=>{
     res.send('Final Project is comming Soon')
@@ -56,6 +54,7 @@ async function run() {
     await client.connect();
 
     const usersCollection=client.db('speakAcademyDB').collection('allUsers')
+    const paymentsCollection=client.db('speakAcademyDB').collection('payments')
     const classesCollection=client.db('speakAcademyDB').collection('classes')
     const selectClassesCollection=client.db('speakAcademyDB').collection('selectClasses')
 
@@ -200,6 +199,13 @@ app.get('/instructor', async (req,res)=>{
         res.send(result)
       })
 
+      app.get('/selectedclass/:id',verifyJWTToken, async (req, res) => {
+        const id = req.params.id;
+        const query={_id: new ObjectId(id)};
+        const result = await selectClassesCollection.findOne(query)
+        res.send(result)
+    })
+    
       app.delete('/selectedclass/:id',async (req,res)=>{
         const id=req.params.id
         const query={_id: new ObjectId(id)};
@@ -268,10 +274,9 @@ app.get('/instructor', async (req,res)=>{
 -------------------- STRIPE PAYMENT ---------------------------
 ---------------------------------------------------------------------*/
 
-  app.post('/create-payment-intent',verifyJWT, async(req,res)=>{
-    const {price}=req.body
-    const amount=parseInt(price*100)
-    
+  app.post('/create-payment-intent',verifyJWTToken, async(req,res)=>{
+    const {totalPrice}=req.body
+    const amount=parseInt(totalPrice*100)
     const paymentIntent=await stripe.paymentIntents.create({
       amount:amount,
       currency:'usd',
@@ -280,10 +285,14 @@ app.get('/instructor', async (req,res)=>{
     res.send({
       clientSecret:paymentIntent.client_secret
     })
-
   })
 
 
+  app.post('/payments', async (req,res)=>{
+    const payment= req.body;
+    const result= await paymentsCollection.insertOne(payment);
+    res.send(result)
+  })
 
 
 
