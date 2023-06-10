@@ -1,10 +1,10 @@
+require('dotenv').config()
 const express = require('express');
 const app =express()
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
-require('dotenv').config()
 const port =process.env.PORT || 5000;
 
 
@@ -55,10 +55,18 @@ async function run() {
 
     const usersCollection=client.db('speakAcademyDB').collection('allUsers')
     const paymentsCollection=client.db('speakAcademyDB').collection('payments')
+    const topStudentsCollection=client.db('speakAcademyDB').collection('topStudent')
     const classesCollection=client.db('speakAcademyDB').collection('classes')
     const selectClassesCollection=client.db('speakAcademyDB').collection('selectClasses')
 
 
+
+
+
+    // app.get('/to', async (req,res)=>{
+    //   const result= await usersCollection.find().toArray()
+    //   res.send(result)
+    // })
 
 
 /*-------------------------------------------------------------------
@@ -199,7 +207,7 @@ app.get('/instructor', async (req,res)=>{
         res.send(result)
       })
 
-      app.get('/selectedclass/:id',verifyJWTToken, async (req, res) => {
+      app.get('/selectedclass/:id', async (req, res) => {
         const id = req.params.id;
         const query={_id: new ObjectId(id)};
         const result = await selectClassesCollection.findOne(query)
@@ -276,15 +284,26 @@ app.get('/instructor', async (req,res)=>{
 
   app.post('/create-payment-intent',verifyJWTToken, async(req,res)=>{
     const {totalPrice}=req.body
-    const amount=parseInt(totalPrice*100)
-    const paymentIntent=await stripe.paymentIntents.create({
-      amount:amount,
-      currency:'usd',
-      payment_method_types:['card']
+    const amount=totalPrice*100
+    console.log(amount);
+    const paymentIntent = await stripe.paymentIntents.create({
+      currency: 'usd',
+      amount: amount,
+      "payment_method_types": [
+        "card"
+      ]
+
     })
     res.send({
-      clientSecret:paymentIntent.client_secret
-    })
+      clientSecret: paymentIntent.client_secret,
+    });
+  })
+  
+
+  // 
+  app.get('/payment-history', async (req,res)=>{
+    const result =await paymentsCollection.find().toArray()
+    res.send(result)
   })
 
 
