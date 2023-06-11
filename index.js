@@ -1,9 +1,9 @@
 require('dotenv').config()
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
 const app =express()
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const port =process.env.PORT || 5000;
 
@@ -58,6 +58,7 @@ async function run() {
     const topStudentsCollection=client.db('speakAcademyDB').collection('topStudent')
     const classesCollection=client.db('speakAcademyDB').collection('classes')
     const selectClassesCollection=client.db('speakAcademyDB').collection('selectClasses')
+    const enrollCollection=client.db('speakAcademyDB').collection('enrollClass')
 
 
 
@@ -182,11 +183,18 @@ app.get('/instructor', async (req,res)=>{
 ---------------------- STUDENT DASHBOARD ----------------------------
 ---------------------------------------------------------------------*/
 
-      // GET SELECTED CLASS FROM DATABASE
 
+      // 
+      app.get('/top-student', async (req,res)=>{
+        const result=await topStudentsCollection.find().toArray()
+        res.send(result)
+      })
+
+
+
+      // GET SELECTED CLASS FROM DATABASE
       app.get('/selectedclass',verifyJWTToken, async (req,res)=>{
         const email=req.query.email;
-        // console.log(email);
         if(!email){
           res.send([])
         }
@@ -206,6 +214,25 @@ app.get('/instructor', async (req,res)=>{
         const result= await selectClassesCollection.insertOne(selectclass)
         res.send(result)
       })
+
+
+    //-----------AFTER PAYMENT-----------
+    // ---------------------------------------------
+
+    app.get('/enrollclass', async (req,res)=>{
+      const result=await enrollCollection.find().toArray()
+      res.send(result)
+    })
+
+      app.post('/enrollClass', async (req,res)=>{
+        const enrolled=req.body;
+console.log(enrolled);
+        const result= await enrollCollection.insertOne(enrolled)
+        res.send(result)
+      })
+
+      // ----------------------------------------
+
 
       app.get('/selectedclass/:id', async (req, res) => {
         const id = req.params.id;
@@ -300,17 +327,43 @@ app.get('/instructor', async (req,res)=>{
   })
   
 
-  // 
+  // GET PAYMENT HISTORY
   app.get('/payment-history', async (req,res)=>{
     const result =await paymentsCollection.find().toArray()
     res.send(result)
   })
 
 
-  app.post('/payments', async (req,res)=>{
+
+  app.post('/payments',verifyJWTToken, async (req,res)=>{
     const payment= req.body;
-    const result= await paymentsCollection.insertOne(payment);
-    res.send(result)
+    const insertResult= await paymentsCollection.insertOne(payment);
+
+    const query={_id:  new ObjectId(payment.paymentClassId)}
+    const deleteResult=await selectClassesCollection.deleteOne(query)
+
+    console.log(insertResult,deleteResult);
+
+    res.send({insertResult,deleteResult})
+  })
+
+
+  // TODO:
+  // Implemention Approved Status
+  app.patch('/selectedclass/:id', async (req,res)=>{
+    const classes=req.params.id
+    const bodyclass=req.body
+
+    const filter={_id: new ObjectId()}
+    const updateDoc = {
+        $set: {
+            seats: classes.seats -1,
+            enroll:classes.enroll +1,
+        },
+      };
+      const result = await classesCollection.updateOne(filter,updateDoc)
+      console.log('enrol result', result);
+      res.send(result)
   })
 
 
