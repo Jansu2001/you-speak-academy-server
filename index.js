@@ -351,14 +351,15 @@ console.log(enrolled);
   // TODO:
   // Implemention Approved Status
   app.patch('/selectedclass/:id', async (req,res)=>{
-    const classes=req.params.id
-    const bodyclass=req.body
+    const id=req.params.classId
 
-    const filter={_id: new ObjectId()}
+    const {seats,enroll}=req.body
+    
+    const filter={_id: new ObjectId(id)}
     const updateDoc = {
         $set: {
-            seats: classes.seats -1,
-            enroll:classes.enroll +1,
+            seats: seats -1,
+            enroll:enroll +1,
         },
       };
       const result = await classesCollection.updateOne(filter,updateDoc)
