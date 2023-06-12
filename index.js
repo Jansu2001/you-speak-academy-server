@@ -63,13 +63,6 @@ async function run() {
 
 
 
-
-    // app.get('/to', async (req,res)=>{
-    //   const result= await usersCollection.find().toArray()
-    //   res.send(result)
-    // })
-
-
 /*-------------------------------------------------------------------
 ----------------------- ADMIN DASHBOARD -----------------------------
 ---------------------------------------------------------------------*/
@@ -157,7 +150,7 @@ app.get('/instructor', async (req,res)=>{
 
     // Get Classes From MongoDB
     app.get('/addclass',  async (req,res)=>{
-        const result= await classesCollection.find().toArray()
+        const result= await classesCollection.find().sort({enroll: -1}).toArray()
         res.send(result)
       })
 
@@ -211,6 +204,7 @@ app.get('/instructor', async (req,res)=>{
 
       app.post('/selectedclass', async (req,res)=>{
         const selectclass=req.body;
+        console.log(selectclass);
         const result= await selectClassesCollection.insertOne(selectclass)
         res.send(result)
       })
@@ -220,13 +214,18 @@ app.get('/instructor', async (req,res)=>{
     // ---------------------------------------------
 
     app.get('/enrollclass', async (req,res)=>{
-      const result=await enrollCollection.find().toArray()
+
+      const email=req.query.email;
+      const query= {email:email};
+
+      
+      const result=await enrollCollection.find(query).toArray()
       res.send(result)
     })
 
       app.post('/enrollClass', async (req,res)=>{
         const enrolled=req.body;
-console.log(enrolled);
+
         const result= await enrollCollection.insertOne(enrolled)
         res.send(result)
       })
@@ -328,11 +327,45 @@ console.log(enrolled);
   
 
   // GET PAYMENT HISTORY
-  app.get('/payment-history', async (req,res)=>{
-    const result =await paymentsCollection.find().toArray()
-    res.send(result)
-  })
+  // TODO: Sort 
 
+
+  app.get('/paymenthistory', async (req,res)=>{
+    
+    const email=req.query.email;
+    const query= {email:email};
+
+    
+    const result=await paymentsCollection.find(query).toArray();
+    res.send(result)
+})
+
+
+
+  // TODO:
+  // Implemention Approved Status
+  app.patch('/selectedclass/:id', async (req,res)=>{
+    const id=req.params.id
+    console.log('ididididid',id);
+
+    // const {seats,enroll}=id
+    const seatss=req.body
+    console.log('seatsssssss',seatss);
+    console.log('seat',seatss.seats);
+    console.log('enroll',seatss.enroll);
+    
+    const filter={_id: new ObjectId(id)}
+    console.log('filter', filter);
+    const updateDoc = {
+        $set: {
+            seats: seatss.seats -1,
+            enroll: seatss.enroll +1,
+        },
+      };
+      const result = await classesCollection.updateOne(filter,updateDoc)
+      console.log('enrol result', result);
+      res.send(result)
+  })
 
 
   app.post('/payments',verifyJWTToken, async (req,res)=>{
@@ -342,30 +375,12 @@ console.log(enrolled);
     const query={_id:  new ObjectId(payment.paymentClassId)}
     const deleteResult=await selectClassesCollection.deleteOne(query)
 
-    console.log(insertResult,deleteResult);
 
     res.send({insertResult,deleteResult})
   })
 
 
-  // TODO:
-  // Implemention Approved Status
-  app.patch('/selectedclass/:id', async (req,res)=>{
-    const id=req.params.classId
-
-    const {seats,enroll}=req.body
-    
-    const filter={_id: new ObjectId(id)}
-    const updateDoc = {
-        $set: {
-            seats: seats -1,
-            enroll:enroll +1,
-        },
-      };
-      const result = await classesCollection.updateOne(filter,updateDoc)
-      console.log('enrol result', result);
-      res.send(result)
-  })
+  
 
 
 
